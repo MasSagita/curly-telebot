@@ -1,5 +1,10 @@
 # curly-telebot
-For Wemos D1 Mini
-Connected to Telegram Bot with library from https://github.com/cotestatnt/AsyncTelegram2 send notification
-Connected to Firebase Database
+For ESP Board
+Sending notificarion to telegram bot
+Firebase Database for kodular
 Simple Temperature and Humidity Sensor
+
+Library:
+dht sensor https://github.com/beegee-tokyo/DHTesp
+telegrambot library https://github.com/cotestatnt/AsyncTelegram2
+time https://github.com/ebrevdo/arduino/tree/master/libraries/Time
