@@ -66,6 +66,7 @@ bool unplugAdaptor = false;
 bool plugAdaptor = false;
 
 // sending based on interval
+unsigned long prevSndToFirebase = 0;
 unsigned long prevSendingMillis = 0;
 bool isSendingNotif = false;
 
@@ -189,6 +190,8 @@ void setup() {
   
   myBot.sendTo(userid, TEXT_HELP);
   delay (1500);  
+  prevSendToFirebase = millis();
+  prevSendingMillis = millis();
 }
 
 bool getValueDHT11 = false;
@@ -262,7 +265,15 @@ void loop() {
 
   // sending power alert
   sendAlert();
-
+  if (millis() - prevSendToFirebase >= 20 * 1000) {
+    Serial.println("Sending Data to FBDB");
+    bool suhuSukses = Firebase.setFloat(firebaseData, "/Suhu_" + String(thisDevice), prevTemp);
+    bool kelembapanSukses = Firebase.setInt(firebaseData, "/Kelembapan_" + String(thisDevice), prevHumi);
+    bool teganganSukses = Firebase.setFloat(firebaseData, "/Tegangan_" + String(thisDevice), getVIN());
+    if (!suhuSukses || !kelembapanSukses || !teganganSukses) Serial.println(F("FBD Error!"));
+    else Serial.println("Update FirebaseDB");
+    prevSendToFirebase = millis();
+  }
   // interval seconds = value * 1000
   // interval minute = value * 60 * 1000
   if (millis() - prevSendingMillis >= sendingInterval * 60000 && !isSendingNotif) {
