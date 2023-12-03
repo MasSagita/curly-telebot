@@ -24,10 +24,10 @@ BearSSL::Session   session;
 BearSSL::X509List  certificate(telegram_cert);
 
 AsyncTelegram2 myBot(client);
-const char* ssid  =  "Legiun";
-const char* pass  =  "sembada33";
-const char* token =  "6902776190:AAGs-kSL-s7-JloUkLkGKpPZtFUqMj-G2tY";
-int64_t userid = 1226142648;
+const char* ssid  =  "xxx";
+const char* pass  =  "xxx";
+const char* token =  "xxx";
+int64_t userid = 999;
 
 const char TEXT_HELP[] =
   "Available Commands:\n"
@@ -38,8 +38,8 @@ const char TEXT_HELP[] =
   "/help  - Show available commands";
 
 #include <FirebaseESP8266.h>
-#define FIREBASE_HOST "https://projek-farhan-default-rtdb.firebaseio.com/"
-#define FIREBASE_AUTH "WrNu10sks7pjiKZpXsECs3CEAlfkLTM3EhsR5mG6"
+#define FIREBASE_HOST "xxx"
+#define FIREBASE_AUTH "xxx"
 FirebaseData firebaseData;
 
 #include <LiquidCrystal_I2C.h>  //lcd i2c
