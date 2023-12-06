@@ -62,14 +62,15 @@ boolean button(int ch) {
 
 // handle the limit of the value
 void buttonHandler(int &value, int maxLimit, int minLimit, int step) {
-  if (button(1)) value += step;
-  if (button(2)) value -= step;
-  if (value > maxLimit) value = minLimit;
-  if (value < minLimit) value = maxLimit;
+  if (button(1)) value += step; // up button
+  if (button(2)) value -= step; // down buttom
+  if (value > maxLimit) value = minLimit; // limit minimum
+  if (value < minLimit) value = maxLimit; // limit maximum
 }
 
 // backlight variable and function
 unsigned long lastBacklightTime = 0;
+// delay time for turning off the lcd
 const unsigned long backlightTimeout = 15000;
 bool backlightCondition;
 bool isBacklight = true;
@@ -82,7 +83,7 @@ void updateBacklight() {
     backlightCondition = false;
     isBacklight = false;
   }
-  //if backlight is on set the parameter if button pressed
+  //if backlight is on then set the parameter if button pressed
   else if (isBacklight) {
     if (button(1)) Serial.println("setParam T"), setParam(tholdSuhu, "Temperature", 25, 40);
     if (button(2)) Serial.println("setParam H"), setParam(tholdKelembapan, "Humidity", 50, 80);
@@ -91,7 +92,7 @@ void updateBacklight() {
   // backlight is on when message coming or button is pressed
   // bool backlightCOndition is true when the new message is coming
   else if (backlightCondition || button(0) || button(1) || button(2)) {
-    Serial.println("Backlight is on");
+    // Serial.println("Backlight is on");
     lcd.backlight();
     isBacklight = true;
     lastBacklightTime = currentTime;
