@@ -79,7 +79,7 @@ float prevTemp;
 float prevHumi;
 
 //change according what the device is
-const char thisDevice[] = "DEVICE3_ROOM3 ";
+const char thisDevice[] = "DEVICE3_ROOM3";
 const char thisR[] = "R3";
 const char thisD[] = "D3";
 
@@ -92,7 +92,7 @@ void setup() {
 
   Serial.println(thisDevice);
 
-  // eeprom and see what happen inside the memory
+  // eeprom and see what inside the memory
   EEPROM.begin(512);
   tholdSuhu = EEPROM.read(0);
   tholdKelembapan = EEPROM.read(1);
@@ -174,6 +174,7 @@ void setup() {
   lcd.setCursor(0, 1), lcd.print(F("@")), lcd.print(myBot.getBotName());
   delay(1000), lcd.clear();
 
+  // notify the telegram bot that device is running
   time_t now = time(nullptr);
   struct tm t = *localtime(&now);
   char welcomeMsg[64];
@@ -189,6 +190,8 @@ void setup() {
   
   myBot.sendTo(userid, TEXT_HELP);
   delay (1500);  
+  
+  prevSendingMillis = millis();
 }
 
 bool getValueDHT11 = false;
@@ -203,6 +206,7 @@ void loop() {
 
   // blink the led for 50ms and display the time
   static uint32_t displayTF = millis();
+  // blink the indicator led for 50ms
   if (millis() - displayTF < 50) digitalWrite(ledPin, HIGH);
   if (millis() - displayTF > 50) digitalWrite(ledPin, LOW);
   if (millis() - displayTF > 1000) {
@@ -230,7 +234,7 @@ void loop() {
   // Check incoming messages and keep Telegram server connection alive
   TBMessage msg;
 
-  // ruangan > dari threshold suhu
+  // room temperatur > threshold 
   if (prevTemp > tholdSuhu && !isSendingTemp && prevTemp != 0) {
     kondisiTemp = "Too HOT!\n";
     String reply;
@@ -245,7 +249,7 @@ void loop() {
     isSendingTemp = false;
   }
 
-  // ruangan terlalu kering
+  // room humidity too dry
   if (prevHumi < tholdKelembapan && !isSendingTemp && prevHumi != 0) {
     kondisiHumi = "Too Dry!\n";
     String reply;
@@ -260,7 +264,7 @@ void loop() {
     isSendingHumi = false;
   }
 
-  // sending power alert
+  // send notification when power is plug or unplugged
   sendAlert();
 
   // interval seconds = value * 1000
