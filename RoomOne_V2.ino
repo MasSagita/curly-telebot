@@ -24,10 +24,10 @@ BearSSL::Session   session;
 BearSSL::X509List  certificate(telegram_cert);
 
 AsyncTelegram2 myBot(client);
-const char* ssid  =  "xxx";
-const char* pass  =  "xxx";
-const char* token =  "xxx";
-int64_t userid = 999;
+const char* ssid  =  "Legiun";
+const char* pass  =  "sembada33";
+const char* token =  "6944744024:AAEMtwNXJ4vI_SvoofBfvPSMuawOm2xRgGc";
+int64_t userid = 6006420445;
 
 const char TEXT_HELP[] =
   "Available Commands:\n"
@@ -38,8 +38,8 @@ const char TEXT_HELP[] =
   "/help  - Show available commands";
 
 #include <FirebaseESP8266.h>
-#define FIREBASE_HOST "xxx"
-#define FIREBASE_AUTH "xxx"
+#define FIREBASE_HOST "farhan-skripsi-default-rtdb.firebaseio.com/"
+#define FIREBASE_AUTH "rhIMDRqbBMWSuYUwUx684VXyyjQvziYebn4iHWw1"
 FirebaseData firebaseData;
 
 #include <LiquidCrystal_I2C.h>  //lcd i2c
@@ -66,6 +66,7 @@ bool unplugAdaptor = false;
 bool plugAdaptor = false;
 
 // sending based on interval
+unsigned long prevSendToFirebase = 0;
 unsigned long prevSendingMillis = 0;
 bool isSendingNotif = false;
 
@@ -79,9 +80,13 @@ float prevTemp;
 float prevHumi;
 
 //change according what the device is
-const char thisDevice[] = "DEVICE3_ROOM3";
+const char thisDevice[] = "DEVICE3_ROOM3 ";
 const char thisR[] = "R3";
 const char thisD[] = "D3";
+const int thisRoomNum = 3;
+
+// notifikasi batere
+String batteryStatus = "";
 
 void setup() {
   // put your setup code here, to run once:
@@ -92,7 +97,7 @@ void setup() {
 
   Serial.println(thisDevice);
 
-  // eeprom and see what inside the memory
+  // eeprom and see what happen inside the memory
   EEPROM.begin(512);
   tholdSuhu = EEPROM.read(0);
   tholdKelembapan = EEPROM.read(1);
@@ -174,7 +179,6 @@ void setup() {
   lcd.setCursor(0, 1), lcd.print(F("@")), lcd.print(myBot.getBotName());
   delay(1000), lcd.clear();
 
-  // notify the telegram bot that device is running
   time_t now = time(nullptr);
   struct tm t = *localtime(&now);
   char welcomeMsg[64];
@@ -187,11 +191,9 @@ void setup() {
 
   Serial.println(reply);
   delay (1500), lcd.clear();
-  
+
   myBot.sendTo(userid, TEXT_HELP);
-  delay (1500);  
-  
-  prevSendingMillis = millis();
+  delay (1500);
 }
 
 bool getValueDHT11 = false;
@@ -206,7 +208,6 @@ void loop() {
 
   // blink the led for 50ms and display the time
   static uint32_t displayTF = millis();
-  // blink the indicator led for 50ms
   if (millis() - displayTF < 50) digitalWrite(ledPin, HIGH);
   if (millis() - displayTF > 50) digitalWrite(ledPin, LOW);
   if (millis() - displayTF > 1000) {
@@ -234,7 +235,7 @@ void loop() {
   // Check incoming messages and keep Telegram server connection alive
   TBMessage msg;
 
-  // room temperatur > threshold 
+  // ruangan > dari threshold suhu
   if (prevTemp > tholdSuhu && !isSendingTemp && prevTemp != 0) {
     kondisiTemp = "Too HOT!\n";
     String reply;
@@ -249,7 +250,7 @@ void loop() {
     isSendingTemp = false;
   }
 
-  // room humidity too dry
+  // ruangan terlalu kering
   if (prevHumi < tholdKelembapan && !isSendingTemp && prevHumi != 0) {
     kondisiHumi = "Too Dry!\n";
     String reply;
@@ -264,11 +265,33 @@ void loop() {
     isSendingHumi = false;
   }
 
-  // send notification when power is plug or unplugged
+  // sending power alert
   sendAlert();
+  
+  // send to firebase only every 5 seconds
+  if (millis() - prevSendToFirebase >= 5 * 1000) {
+    int randomNum = random(0, 100);
+    Serial.println("Send to Firebase DB Onyl!");
+    bool suhuSukses = Firebase.setFloat(firebaseData, "/Suhu" + String(thisRoomNum), prevTemp);
+    bool kelembapanSukses = Firebase.setInt(firebaseData, "/Kelembapan" + String(thisRoomNum), prevHumi);
+    bool teganganSukses = Firebase.setFloat(firebaseData, "/Tegangan" + String(thisRoomNum), getVIN());
+    bool randomNumber = Firebase.setInt(firebaseData, "/Number" , randomNum);
+    
+    if (!suhuSukses || !kelembapanSukses || !teganganSukses || !randomNumber) Serial.println(F("FBD Error!"));
+    else {
+      Serial.print(randomNum);
+      Serial.print(" | ");
+      Serial.println("Update FirebaseDB");
+    }
+    digitalWrite(ledPin, HIGH);
+    delay(150);
+    digitalWrite(ledPin, LOW);
+    prevSendToFirebase = millis();
+  }
 
   // interval seconds = value * 1000
   // interval minute = value * 60 * 1000
+  
   if (millis() - prevSendingMillis >= sendingInterval * 60000 && !isSendingNotif) {
     Serial.println("\nsend to bot:");
     String reply;
@@ -335,7 +358,7 @@ void loop() {
       String reply;
       reply += thisDevice;
       reply += "is:/n";
-      
+
       reply += "- will send notification when temperature is higher than ";
       reply += tholdSuhu;
       reply += "°C/n";
@@ -347,7 +370,7 @@ void loop() {
       reply += "- will send notification in every ";
       reply += sendingInterval;
       reply += " Minutes/n";
-      
+
       myBot.sendMessage(msg, reply);
     }
 
@@ -370,11 +393,13 @@ void loop() {
 
   // handle the backlight and parameter settings
   updateBacklight(); // and set parameter
-//  delay(50);
+  //  delay(50);
 }
 
 // function to send the variable in to firebase database call this based on interval sending
 void sendFirebase() {
+
+  String dev = "1";
   time_t now = time(nullptr);
   struct tm *ptm = localtime (&now);
 
@@ -399,6 +424,12 @@ void sendFirebase() {
   String dmyTegangan = "/" + String(thisDevice) + "/Tegangan/" + dmyJam;
   Firebase.setFloat(firebaseData, dmyTegangan, getVIN());
 
+//  // Kirim data langsung diluar
+//  bool suhuToFBD = Firebase.setFloat(firebaseData, "/" + "suhu_" + String(dev), prevTemp);
+//  bool kelembapanToFBD = Firebase.setInt(firebaseData, "/" + "kelembapan_" + String(dev), prevHumi);
+//  bool teganganToFBD = Firebase.setFloat(firebaseData, "/" + "tegangan_" + String(dev), getVIN());
+//  
+//  if (!suhuToFBD || !kelembapanToFBD || !teganganToFBD) Serial.println(F("Send Error!"));
   if (!suhuSukses || !kelembapanSukses || !teganganSukses) Serial.println(F("FBD Error!"));
   else Serial.println("Update FirebaseDB");
 }
@@ -409,6 +440,7 @@ void sendAlert() {
   if (getVIN() > 4.0 && !plugAdaptor) {
     backlightCondition = true;
     kondisiPower = "powered by Adaptor\n";
+    batteryStatus = "Adaptor";
     String reply;
     reply += thisDevice;
     reply += kondisiPower;
@@ -418,6 +450,11 @@ void sendAlert() {
     reply += formattedTime;
     Serial.println(reply);
     myBot.sendTo(userid, reply);
+
+    bool sendStatusDevice = Firebase.setString(firebaseData, "/devStatus" + String(thisRoomNum), batteryStatus);
+    if (!sendStatusDevice) Serial.println(firebaseData.errorReason().c_str());
+    else Serial.println("Sending OK");
+    
     plugAdaptor = true;
     unplugAdaptor = false;
   }
@@ -426,6 +463,7 @@ void sendAlert() {
   if (getVIN() < 4.0 && !unplugAdaptor) {
     backlightCondition = true;
     kondisiPower = "powered by Battery\n";
+    batteryStatus = "Battery";
     String reply;
     reply += thisDevice;
     reply += kondisiPower;
@@ -435,6 +473,11 @@ void sendAlert() {
     reply += formattedTime;
     Serial.println(reply);
     myBot.sendTo(userid, reply);
+
+    bool sendStatusDevice = Firebase.setString(firebaseData, "/devStatus" + String(thisRoomNum), batteryStatus);
+    if (!sendStatusDevice) Serial.println(firebaseData.errorReason().c_str());
+    else Serial.println("Sending OK");
+    
     unplugAdaptor = true;
     plugAdaptor = false;
   }
@@ -512,4 +555,3 @@ void formatTime() {
   strftime(formattedTime, sizeof(formattedTime), "%X", &t);
   //return String(msgBuffer);
 }
-
